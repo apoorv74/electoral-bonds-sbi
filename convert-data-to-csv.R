@@ -1,3 +1,5 @@
+# Load libraries ----------------------------------------------------------
+
 library(tabulizer)
 library(dplyr)
 library(stringr)
