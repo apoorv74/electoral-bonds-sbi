@@ -1,0 +1,83 @@
+---
+title: "Analysis of Electoral Bonds Data"
+subtitle: "Published by the ECI on 14-03-2024"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r load-libraries, include=FALSE}
+library(dplyr)
+library(readr)
+library(kableExtra)
+library(tidyr)
+options(scipen=999)
+```
+
+The datasets were processed from PDF files uploaded on the ECI website. To ensure that the conversion (from PDF to CSV) is error free, we will calculate a few aggregate figures as reported by a few news agencies and compare the final figures. 
+
+```{r read-datasets, include=FALSE}
+
+file_purchaser <- readr::read_csv("../data/purchaser.csv", col_types = cols())
+file_encasher <- readr::read_csv("../data/encashment.csv", col_types = cols())
+
+```
+
+
+## Does the total amount match in both files?
+
+A difference of approx **600 crores** between the two files was also highlighted. 
+
+```{r difference-in-total-amount, include=FALSE}
+
+total_amount_purchaser <- sum(file_purchaser$denomination)
+total_amount_encasher <- sum(file_encasher$denomination)
+
+total_diff <- (total_amount_purchaser - total_amount_encasher)/10000000
+```
+
+Total amount in the _purchaser_ file is `r round(total_amount_purchaser/10000000)` crores whereas total amount in the _encasher_ file is `r round(total_amount_encasher/10000000)` crores which amount to a difference of INR `r total_diff`(approx) crores.
+
+## Who are the top 10 Purchasers
+
+```{r top-10-purchasers, echo=FALSE}
+top_10_purchaser <-
+  file_purchaser %>% group_by(purchaserName) %>% summarise(totalAmount = round(sum(denomination)/10000000)) %>% arrange(desc(totalAmount)) %>% head(10)
+
+future_org <- file_purchaser$purchaserName[grepl(pattern = "future",x = file_purchaser$purchaserName,ignore.case = TRUE)] %>% unique()
+
+kable(top_10_purchaser, format = "pipe")
+```
+_Note: The total amount is in Crores_
+
+In the purchaser file, it looks like the same purchaser has a few different names. 
+For e.g. _FUTURE GAMING AND HOTEL SERVICES PR_ has three different names - _FUTURE GAMING AND HOTEL SERVICES PR_, _FUTURE GAMING AND HOTEL SERVICES PRIVATE LIMITED_ & _FUTURE GAMING AND HOTEL SERVICES PVT LTD_. The total amount of bonds purchased by these three entities is equal to `r sum(file_purchaser$denomination[file_purchaser$purchaserName %in% future_org])/10000000` crores.
+
+
+## Who are the top 10 Encashers
+
+```{r top-10-encashers, echo=FALSE}
+top_10_encashers <- file_encasher %>% group_by(politicalParty) %>% summarise(totalAmount = round(sum(denomination)/10000000)) %>% arrange(desc(totalAmount)) %>% head(10)
+
+kable(top_10_encashers, format = "pipe")
+
+```
+
+_Note: The total amount is in Crores_
+
+
+## Bond denomination distribution by political parties
+
+```{r denomination-distribution-by-parties, echo=FALSE, message=FALSE, warning=FALSE}
+
+denomination_dist <- file_encasher %>% group_by(politicalParty, denomination) %>% summarise(totalBonds=n()) %>% pivot_wider(names_from = denomination,values_from = totalBonds) %>% mutate(totalBonds = rowSums(across(where(is.numeric)),na.rm=TRUE))
+
+denomination_dist_select <-
+  denomination_dist[denomination_dist$politicalParty %in% top_10_encashers$politicalParty, ] %>% arrange(desc(totalBonds)) %>% head(5)
+
+kable(denomination_dist_select,format = "pipe")
+
+```
+
+---
+
+Data Source: [Election Commission of India](https://www.eci.gov.in/disclosure-of-electoral-bonds)
