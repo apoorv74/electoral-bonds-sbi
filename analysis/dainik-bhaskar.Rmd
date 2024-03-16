@@ -14,7 +14,7 @@ library(lubridate)
 options(scipen=999)
 ```
 
-The datasets were processed from PDF files uploaded on the ECI website. To ensure that the conversion (from PDF to CSV) is error free, we will calculate a few aggregate figures as reported by a few news agencies and compare the final figures. 
+These datasets were processed from PDF files uploaded on the [ECI website](https://www.eci.gov.in/disclosure-of-electoral-bonds). To ensure that the conversion (from PDF to CSV) is error free, we will calculate a few aggregate figures and compare figures reported by news agencies .
 
 ```{r read-datasets, include=FALSE}
 
@@ -83,6 +83,7 @@ kable(denomination_dist_select,format = "pipe")
 
 ```{r bonds-purchased-per-year, echo=FALSE}
 
+file_encasher$dateOfEncashment <- as.Date(file_encasher$dateOfEncashment,format = "%d/%b/%Y")
 file_purchaser$dateOfPurchase <- as.Date(file_purchaser$dateOfPurchase,format = "%d/%b/%Y")
 bonds_purchased_per_year <- file_purchaser %>% group_by(floor_date(dateOfPurchase,"year")) %>% summarise(totalBonds = n(),
                                                                                                          totalValue = round(sum(denomination)/10000000))
@@ -96,6 +97,28 @@ kable(bonds_purchased_per_year,format = "pipe")
 _Note: The totalValue is in Crores_
 
 The _date of purchase_ ranges from **`r range(file_purchaser$dateOfPurchase) %>% min`** to **`r range(file_purchaser$dateOfPurchase) %>% max`**
+
+## Time Series - Bonds purchased vs Bonds Encashed
+
+```{r time-series-bonds-purchased-encashed}
+
+# Generate a sequence of dates between 2019 and Jan 2024
+
+from_date <- as.Date("2019-01-01")
+to_date <- as.Date("2024-01-31")
+all_dates <- seq.Date(from = from_date, to = to_date,by = 1)
+
+bond_time_series <- data.frame("allDates" = all_dates)
+
+bond_value_purchased <- file_purchaser %>% group_by(dateOfPurchase) %>% summarise(valuePurchased = round(sum(denomination)/10000000))
+
+bond_value_encashed <- file_encasher %>% group_by(dateOfEncashment) %>% summarise(valueEncashed = round(sum(denomination)/10000000))
+
+bond_time_series <- left_join(bond_time_series, bond_value_purchased, by=c("allDates"="dateOfPurchase"))
+bond_time_series <- left_join(bond_time_series, bond_value_encashed, by=c("allDates"="dateOfEncashment"))
+
+readr::write_csv(bond_time_series, "../data/bond_time_series.csv")
+```
 
 
 ---
