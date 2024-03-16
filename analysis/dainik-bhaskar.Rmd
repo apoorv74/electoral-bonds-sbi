@@ -10,6 +10,7 @@ library(dplyr)
 library(readr)
 library(kableExtra)
 library(tidyr)
+library(lubridate)
 options(scipen=999)
 ```
 
@@ -77,6 +78,25 @@ denomination_dist_select <-
 kable(denomination_dist_select,format = "pipe")
 
 ```
+
+## Bonds purchased every year
+
+```{r bonds-purchased-per-year, echo=FALSE}
+
+file_purchaser$dateOfPurchase <- as.Date(file_purchaser$dateOfPurchase,format = "%d/%b/%Y")
+bonds_purchased_per_year <- file_purchaser %>% group_by(floor_date(dateOfPurchase,"year")) %>% summarise(totalBonds = n(),
+                                                                                                         totalValue = round(sum(denomination)/10000000))
+bonds_purchased_per_year$`floor_date(dateOfPurchase, "year")` <- strftime(bonds_purchased_per_year$`floor_date(dateOfPurchase, "year")`,"%Y")
+names(bonds_purchased_per_year)[] <- c("year","totalBonds","totalValue")
+
+kable(bonds_purchased_per_year,format = "pipe")
+
+```
+
+_Note: The totalValue is in Crores_
+
+The _date of purchase_ ranges from **`r range(file_purchaser$dateOfPurchase) %>% min`** to **`r range(file_purchaser$dateOfPurchase) %>% max`**
+
 
 ---
 
