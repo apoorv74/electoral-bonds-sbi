@@ -3,6 +3,7 @@ title: "Analysis of Electoral Bonds Data"
 subtitle: "Published by the ECI on 14-03-2024"
 date: "`r Sys.Date()`"
 output: html_document
+runtime: shiny
 ---
 
 ```{r load-libraries, include=FALSE}
@@ -11,6 +12,7 @@ library(readr)
 library(kableExtra)
 library(tidyr)
 library(lubridate)
+library(DT)
 options(scipen=999)
 ```
 
@@ -98,9 +100,7 @@ _Note: The totalValue is in Crores_
 
 The _date of purchase_ ranges from **`r range(file_purchaser$dateOfPurchase) %>% min`** to **`r range(file_purchaser$dateOfPurchase) %>% max`**
 
-## Time Series - Bonds purchased vs Bonds Encashed
-
-```{r time-series-bonds-purchased-encashed}
+```{r time-series-bonds-purchased-encashed, include=FALSE}
 
 # Generate a sequence of dates between 2019 and Jan 2024
 
@@ -119,6 +119,25 @@ bond_time_series <- left_join(bond_time_series, bond_value_encashed, by=c("allDa
 
 readr::write_csv(bond_time_series, "../data/bond_time_series.csv")
 ```
+
+## Details of Purchasers
+
+```{r purchasers-table-for-search, echo=FALSE, message=FALSE, warning=FALSE}
+
+DT::datatable(
+  data = file_purchaser,
+  filter = list(position = 'top', clear = TRUE),
+  options = list(
+    search = list(
+      regex = TRUE,
+      caseInsensitive = TRUE
+    ),
+    pageLength = 20
+  ),class = 'cell-border stripe hover'
+) %>% renderDT(server = TRUE)
+
+```
+
 
 
 ---
